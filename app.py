@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS to improve appearance and visibility
+#CSS 
 st.markdown("""
 <style>
     body {
@@ -182,7 +182,6 @@ else:
         model_loaded = False
         model_error = str(e)
 
-    # Main App UI with better spacing and layout
     col1, col2, col3 = st.columns([1, 6, 1])
     
     with col2:
@@ -251,13 +250,12 @@ else:
         if submitted:
             progress_bar = st.progress(0)
             
-            # Simulate loading time with progress bar
             for i in range(101):
                 time.sleep(0.01)
                 progress_bar.progress(i)
             
             if not model_loaded:
-                st.error(f"⚠️ Model file not found: {model_error}")
+                st.error(f" Model file not found: {model_error}")
             else:
                 try:
                     # Convert input data into a DataFrame
