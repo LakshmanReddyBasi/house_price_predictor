@@ -192,7 +192,9 @@ def load_model(model_path):
 
 # Get model path
 script_dir = os.path.dirname(__file__)
-model_path = os.path.join(script_dir, 'house_price_model.pkl')
+
+model_path = os.path.join(script_dir, 'model', 'house_price_model.pkl')
+
 model = load_model(model_path)
 model_loaded = model is not None
 
