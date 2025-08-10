@@ -1,295 +1,343 @@
 import streamlit as st
 import pandas as pd
-import joblib
+import pickle
+import os
 from streamlit_lottie import st_lottie
 import requests
-from sklearn.preprocessing import LabelEncoder
 import time
 
-# Set page configuration first with wider layout
+# -------------------------------
+# Page Configuration
+# -------------------------------
 st.set_page_config(
-    page_title="House Price Predictor", 
-    page_icon="🏡", 
+    page_title="House Price Predictor",
+    page_icon="🏡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-#CSS 
+# -------------------------------
+# Enhanced CSS for Aesthetic & Professional Look
+# -------------------------------
 st.markdown("""
 <style>
+    /* Global Styles */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
     body {
-        color: #ffffff;
-        background-color: #111827;
+        color: #E5E7EB;
+        background-color: #0F172A;
+        font-family: 'Inter', sans-serif;
     }
+    
     .main {
-        background-color: #111827;
-        color: #ffffff;
+        background-color: #0F172A;
+        color: #E5E7EB;
         padding: 2rem 3rem;
     }
+
+    /* Headings */
+    h1 {
+        color: #FFFFFF;
+        font-size: 2.8rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 0.75rem !important;
+        letter-spacing: -0.02em;
+    }
+    h3 {
+        color: #E5E7EB;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Subheader */
+    .subheader {
+        color: #9CA3AF;
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        font-weight: 500;
+    }
+
+    /* Form Styling */
+    .stForm {
+        background-color: #1E293B;
+        padding: 2.2rem;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        border: 1px solid #334155;
+        transition: box-shadow 0.3s ease;
+    }
+    .stForm:hover {
+        box-shadow: 0 12px 32px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Buttons */
     .stButton button {
         background-color: #4F46E5;
         color: white;
-        font-weight: bold;
-        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
         font-size: 1.1rem;
-        border-radius: 8px;
+        border-radius: 10px;
         border: none;
-        transition: all 0.3s;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
     }
     .stButton button:hover {
         background-color: #4338CA;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.3);
     }
-    h1 {
-        color: #ffffff;
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
-        margin-bottom: 1rem !important;
-    }
-    h3 {
-        color: #ffffff !important;
-        margin-top: 1rem !important;
-    }
-    .subheader {
-        color: #9CA3AF;
-        font-size: 1.3rem !important;
-        margin-bottom: 2rem !important;
-    }
-    .stForm {
-        background-color: #1F2937;
-        padding: 2rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        border: 1px solid #374151;
-    }
-    div[data-testid="stForm"] {
-        border: 1px solid #374151;
-        border-radius: 12px;
-        padding: 20px;
-        background-color: #1F2937;
-    }
-    .stAlert {
-        border-radius: 8px;
-        font-weight: 500;
-    }
-    .prediction-result {
-        font-size: 1.4rem;
-        font-weight: bold;
-        padding: 1.5rem;
-        border-radius: 8px;
-        background-color: #153E75;
-        color: white;
-        text-align: center;
-        margin: 1rem 0;
-        border: 1px solid #2563EB;
-    }
-    label {
-        font-weight: 500;
-        color: #E5E7EB !important;
-    }
-    /* Make input fields more visible */
-    div[data-baseweb="input"], div[data-baseweb="select"] {
-        background-color: #374151 !important;
-        border-radius: 6px !important;
-    }
-    div[data-baseweb="select"] > div {
-        background-color: #374151 !important;
-        color: white !important;
-        border-color: #4B5563 !important;
-    }
-    input, .st-bq, .st-aj, .st-c0 {
-        color: white !important;
-    }
-    /* Make number input more visible */
-    input[type="number"] {
-        background-color: #374151 !important;
-        color: white !important;
-        border-color: #4B5563 !important;
-    }
-    /* Style the select dropdowns */
-    div[data-baseweb="select"] {
-        background-color: #374151 !important;
-    }
-    div[role="listbox"] {
-        background-color: #1F2937 !important;
-    }
-    /* Style the slider */
-    div[data-testid="stSlider"] > div {
-        background-color: #4F46E5 !important;
-    }
-    /* Remove hamburger menu and footer */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    /* Icon colors */
-    .emoji-span {
-        font-size: 1.2rem;
-        margin-right: 8px;
-        color: #4F46E5;
-    }
-    /* Specific field label styling */
+
+    /* Input Labels */
     .field-label {
-        color: #D1D5DB !important;
+        font-size: 0.95rem;
         font-weight: 500;
-        margin-bottom: 5px;
-        font-size: 1rem;
+        color: #CBD5E1;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    /* Inputs */
+    div[data-baseweb="input"] input,
+    div[data-baseweb="select"] > div {
+        background-color: #334155 !important;
+        color: #F8FAFC !important;
+        border: 1px solid #475569 !important;
+        border-radius: 8px !important;
+        transition: border 0.2s ease;
+    }
+    div[data-baseweb="input"] input:focus,
+    div[data-baseweb="select"]:focus-within {
+        border-color: #818CF8 !important;
+        box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
+    }
+
+    /* Select Dropdown */
+    div[role="listbox"] {
+        background-color: #1E293B !important;
+        border-radius: 8px;
+        border: 1px solid #475569;
+    }
+
+    /* Slider */
+    div[data-testid="stSlider"] > div > div > div {
+        background-color: #818CF8 !important;
+    }
+
+    /* Prediction Result */
+    .prediction-result {
+        font-size: 1.6rem;
+        font-weight: 700;
+        padding: 1.6rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #1E40AF, #1E3A8A);
+        color: #FFFFFF;
+        text-align: center;
+        margin: 1.5rem 0;
+        border: 1px solid #3730A3;
+        box-shadow: 0 4px 14px rgba(30, 64, 175, 0.3);
+        animation: fadeIn 0.5s ease;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Hide Streamlit elements */
+    #MainMenu, footer, header {
+        visibility: hidden;
+    }
+
+    /* Responsive padding */
+    @media (max-width: 768px) {
+        .main { padding: 1rem; }
+        h1 { font-size: 2.2rem !important; }
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Load Lottie animations
-@st.cache_data
-def load_lottie_url(url):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
+# -------------------------------
+# Cache Lottie Animation
+# -------------------------------
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_lottie_url(url: str):
     try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
         return r.json()
-    except ValueError:
+    except Exception as e:
+        st.warning(f"Failed to load animation: {e}")
         return None
 
-# Different animations for splash and main page
-splash_animation = load_lottie_url("https://lottie.host/ce4eeaf6-e2bc-421f-98b7-2f8af195f0b7/obnXRuFFLl.json")
-main_animation = load_lottie_url("https://lottie.host/a2425c91-7630-4c68-aa51-7b88388fbb7c/NvaArmIdzH.json")
+# -------------------------------
+# Load Animations (Optimized URLs)
+# -------------------------------
+SPLASH_URL = "https://lottie.host/ce4eeaf6-e2bc-421f-98b7-2f8af195f0b7/obnXRuFFLl.json"
+MAIN_URL = "https://lottie.host/a2425c91-7630-4c68-aa51-7b88388fbb7c/NvaArmIdzH.json"
 
-# Initialize session state
+splash_animation = load_lottie_url(SPLASH_URL)
+main_animation = load_lottie_url(MAIN_URL)
+
+# -------------------------------
+# Session State Initialization
+# -------------------------------
 if 'app_mode' not in st.session_state:
     st.session_state.app_mode = "splash"
 
-# Button callback to switch from splash to main app
 def switch_to_main():
     st.session_state.app_mode = "main"
+    # No delay — instant transition
 
-# Show either splash screen or main app based on app_mode
+# -------------------------------
+# Model Loading (Cached)
+# -------------------------------
+@st.cache_resource
+def load_model(model_path):
+    try:
+        with open(model_path, 'rb') as f:
+            return pickle.load(f)
+    except Exception as e:
+        st.error(f"❌ Failed to load model: {e}")
+        return None
+
+# Get model path
+script_dir = os.path.dirname(__file__)
+model_path = os.path.join(script_dir, 'house_price_model.pkl')
+model = load_model(model_path)
+model_loaded = model is not None
+
+# -------------------------------
+# Splash Screen (Fast & Smooth)
+# -------------------------------
 if st.session_state.app_mode == "splash":
-    # Splash screen with centered content
-    st.markdown("<div style='text-align: center; padding: 3rem 0;'>", unsafe_allow_html=True)
-    
+    st.markdown("<div style='text-align: center; padding: 6rem 1rem;'>", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st_lottie(splash_animation, height=350, key="splash")
-        st.markdown("<h1 style='text-align: center; font-size: 3rem !important; color: white;'>🏠 House Price Predictor</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; font-size: 1.5rem; margin-bottom: 2rem; color: #9CA3AF;'>Welcome to the Smart House Price Prediction App!</p>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #9CA3AF; margin-bottom: 2rem;'>Get accurate house price predictions using advanced machine learning algorithms.</p>", unsafe_allow_html=True)
-        st.button("Enter App →", on_click=switch_to_main, use_container_width=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-else:
-    # Main app - only load model when in main mode
-    try:
-        model_pipeline = joblib.load('model/house_price_model.pkl')
-        model_loaded = True
-    except Exception as e:
-        model_loaded = False
-        model_error = str(e)
+        if splash_animation:
+            st_lottie(splash_animation, height=300, key="splash_anim", speed=1.2)
+        st.markdown("<h1 style='color: white;'>🏡 House Price Predictor</h1>", unsafe_allow_html=True)
+        st.markdown("""
+            <p style='font-size: 1.3rem; color: #9CA3AF; margin: 1rem 0 2rem;'>
+                Get smart, accurate predictions in seconds.
+            </p>
+        """, unsafe_allow_html=True)
+        st.button("🚀 Get Started", on_click=switch_to_main, use_container_width=True)
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# -------------------------------
+# Main App (Clean & Professional)
+# -------------------------------
+else:
     col1, col2, col3 = st.columns([1, 6, 1])
-    
     with col2:
-        # Header section with animation side by side
+        # Header with animation
         header_col1, header_col2 = st.columns([2, 1])
-        
         with header_col1:
-            st.markdown("<h1>Smart House Price Prediction App</h1>", unsafe_allow_html=True)
-            st.markdown("<p class='subheader'>Fill the details below to get an accurate prediction</p>", unsafe_allow_html=True)
-        
+            st.markdown("<h1>Smart House Price Prediction</h1>", unsafe_allow_html=True)
+            st.markdown("<p class='subheader'>Fill in the property details for an instant estimate.</p>", unsafe_allow_html=True)
         with header_col2:
-            st_lottie(main_animation, height=150, key="main")
-        
-        # Form with improved styling and visibility
+            if main_animation:
+                st_lottie(main_animation, height=160, key="main_anim", loop=True, speed=1)
+
+        # Prediction Form
         with st.form("prediction_form"):
-            st.markdown("<h3>Property Details</h3>", unsafe_allow_html=True)
-            
-            row1_col1, row1_col2, row1_col3 = st.columns(3)
-            
-            with row1_col1:
+            st.markdown("<h3>PropertyParams</h3>", unsafe_allow_html=True)
+
+            # First Row: MSSubClass, LotArea, BldgType
+            c1, c2, c3 = st.columns(3)
+            with c1:
                 st.markdown("<p class='field-label'>🏷️ MS SubClass</p>", unsafe_allow_html=True)
-                MSSubClass = st.number_input("", min_value=20, max_value=190, value=60, key="mssubclass", label_visibility="collapsed")
-                
+                MSSubClass = st.number_input("", min_value=20, max_value=190, value=60, step=1, key="mssubclass", label_visibility="collapsed")
+
                 st.markdown("<p class='field-label'>🏙️ MS Zoning</p>", unsafe_allow_html=True)
                 MSZoning = st.selectbox("", ['RL', 'RM', 'FV', 'RH', 'C (all)'], key="mszoning", label_visibility="collapsed")
-                
+
                 st.markdown("<p class='field-label'>🏗️ Year Built</p>", unsafe_allow_html=True)
-                YearBuilt = st.number_input("", min_value=1800, max_value=2025, value=2000, key="yearbuilt", label_visibility="collapsed")
-                
-            with row1_col2:
+                YearBuilt = st.number_input("", min_value=1800, max_value=2025, value=2000, step=1, key="yearbuilt", label_visibility="collapsed")
+
+            with c2:
                 st.markdown("<p class='field-label'>📏 Lot Area (sq.ft)</p>", unsafe_allow_html=True)
-                LotArea = st.number_input("", min_value=1000, value=8000, key="lotarea", label_visibility="collapsed")
-                
-                st.markdown("<p class='field-label'>📐 Lot Config</p>", unsafe_allow_html=True)
+                LotArea = st.number_input("", min_value=1000, value=8000, step=100, key="lotarea", label_visibility="collapsed")
+
+                st.markdown("<p class='field-label'>📐 Lot Configuration</p>", unsafe_allow_html=True)
                 LotConfig = st.selectbox("", ['Inside', 'FR2', 'Corner', 'CulDSac', 'FR3'], key="lotconfig", label_visibility="collapsed")
-                
-                st.markdown("<p class='field-label'>🔨 Year Remodeled</p>", unsafe_allow_html=True)
-                YearRemodAdd = st.number_input("", min_value=1800, max_value=2025, value=2000, key="yearremod", label_visibility="collapsed")
-                
-            with row1_col3:
+
+                st.markdown("<p class='field-label'>🔨 Remodeled Year</p>", unsafe_allow_html=True)
+                YearRemodAdd = st.number_input("", min_value=1800, max_value=2025, value=2000, step=1, key="yearremod", label_visibility="collapsed")
+
+            with c3:
                 st.markdown("<p class='field-label'>🏘️ Building Type</p>", unsafe_allow_html=True)
                 BldgType = st.selectbox("", ['1Fam', '2fmCon', 'Duplex', 'TwnhsE', 'Twnhs'], key="bldgtype", label_visibility="collapsed")
-                
+
                 st.markdown("<p class='field-label'>🔧 Overall Condition</p>", unsafe_allow_html=True)
                 OverallCond = st.slider("", 1, 10, 5, key="condition", label_visibility="collapsed")
-                
+
                 st.markdown("<p class='field-label'>🎨 Exterior Material</p>", unsafe_allow_html=True)
-                Exterior1st = st.selectbox("", ['VinylSd', 'MetalSd', 'Wd Sdng', 'HdBoard', 'BrkFace', 'WdShing'], key="exterior", label_visibility="collapsed")
-            
+                Exterior1st = st.selectbox("", ['VinylSd', 'MetalSd', 'Wd Sdng', 'HdBoard', 'BrkFace', 'WdShing', 'Plywood', 'CemntBd', 'ImStucc', 'Stone', 'Stucco'], key="exterior", label_visibility="collapsed")
+
+            # Basement
             st.markdown("<h3>Basement Details</h3>", unsafe_allow_html=True)
-            
-            row2_col1, row2_col2 = st.columns(2)
-            
-            with row2_col1:
-                st.markdown("<p class='field-label'>🏚️ Basement Finished SF2</p>", unsafe_allow_html=True)
-                BsmtFinSF2 = st.number_input("", min_value=0, value=0, key="bsmtfin", label_visibility="collapsed")
-                
-            with row2_col2:
+            cb1, cb2 = st.columns(2)
+            with cb1:
+                st.markdown("<p class='field-label'>🏚️ Finished SF2</p>", unsafe_allow_html=True)
+                BsmtFinSF2 = st.number_input("", min_value=0.0, value=0.0, step=10.0, key="bsmtfin", label_visibility="collapsed")
+            with cb2:
                 st.markdown("<p class='field-label'>🏠 Total Basement SF</p>", unsafe_allow_html=True)
-                TotalBsmtSF = st.number_input("", min_value=0, value=800, key="totalbsmt", label_visibility="collapsed")
-            
-            st.markdown("")
-            submitted = st.form_submit_button("💡 Predict House Price")
+                TotalBsmtSF = st.number_input("", min_value=0.0, value=800.0, step=10.0, key="totalbsmt", label_visibility="collapsed")
 
-        # Prediction Section with improved styling
+            # Submit Button
+            submitted = st.form_submit_button("💡 Predict Price", use_container_width=True)
+
+        # Handle Prediction
         if submitted:
-            progress_bar = st.progress(0)
-            
-            for i in range(101):
-                time.sleep(0.01)
-                progress_bar.progress(i)
-            
             if not model_loaded:
-                st.error(f" Model file not found: {model_error}")
+                st.error("❌ Model not loaded. Please check the file path.")
             else:
+                # Minimal progress bar (fast, smooth)
+                with st.spinner("Predicting..."):
+                    time.sleep(0.3)  # Simulate brief processing (remove in production if instant)
+
                 try:
-                    # Convert input data into a DataFrame
-                    input_data = pd.DataFrame({
-                        'MSSubClass': [MSSubClass],
-                        'MSZoning': [MSZoning],
-                        'LotArea': [LotArea],
-                        'LotConfig': [LotConfig],
-                        'BldgType': [BldgType],
-                        'OverallCond': [OverallCond],
-                        'YearBuilt': [YearBuilt],
-                        'YearRemodAdd': [YearRemodAdd],
-                        'Exterior1st': [Exterior1st],
-                        'BsmtFinSF2': [BsmtFinSF2],
-                        'TotalBsmtSF': [TotalBsmtSF]
-                    })
+                    # Feature construction
+                    features = {
+                        'MSSubClass': MSSubClass,
+                        'LotArea': LotArea,
+                        'OverallCond': OverallCond,
+                        'YearBuilt': YearBuilt,
+                        'YearRemodAdd': YearRemodAdd,
+                        'BsmtFinSF2': BsmtFinSF2,
+                        'TotalBsmtSF': TotalBsmtSF
+                    }
 
-                    # Label Encoding for categorical columns
-                    label_encoder = LabelEncoder()
-                    input_data['MSZoning'] = label_encoder.fit_transform(input_data['MSZoning'])
-                    input_data['LotConfig'] = label_encoder.fit_transform(input_data['LotConfig'])
-                    input_data['BldgType'] = label_encoder.fit_transform(input_data['BldgType'])
-                    input_data['Exterior1st'] = label_encoder.fit_transform(input_data['Exterior1st'])
+                    # One-hot encoding mapping (must match training)
+                    cat_map = {
+                        'MSZoning': ['C (all)', 'FV', 'RH', 'RL', 'RM'],
+                        'LotConfig': ['Corner', 'CulDSac', 'FR2', 'FR3', 'Inside'],
+                        'BldgType': ['1Fam', '2fmCon', 'Duplex', 'Twnhs', 'TwnhsE'],
+                        'Exterior1st': ['AsbShng', 'AsphShn', 'BrkComm', 'BrkFace', 'CBlock', 'CemntBd', 'HdBoard', 'ImStucc', 'MetalSd', 'Plywood', 'Stone', 'Stucco', 'VinylSd', 'Wd Sdng', 'WdShing']
+                    }
 
-                    # Make the prediction
-                    prediction = model_pipeline.predict(input_data)
-                    
-                    # Display result with better styling
+                    for col, opts in cat_map.items():
+                        val = globals()[col]
+                        for opt in opts:
+                            features[f"{col}_{opt}"] = 1.0 if val == opt else 0.0
+
+                    input_df = pd.DataFrame([features])
+                    prediction = model.predict(input_df)[0]
+
+                    # Display result with animation
                     st.markdown(f"""
-                    <div class='prediction-result'>
-                        🏷️ Estimated House Price: ₹ {prediction[0]:,.2f}
-                    </div>
+                        <div class='prediction-result'>
+                            💰 Estimated Price: <strong>${prediction:,.2f}</strong>
+                        </div>
                     """, unsafe_allow_html=True)
-                    
+
                 except Exception as e:
-                    st.error("⚠️ Prediction failed. Please make sure your model and input format are correct.")
-                    st.exception(e)
+                    st.error("⚠️ Prediction failed. Please verify inputs.")
+                    st.code(str(e))
