@@ -6,9 +6,7 @@ from streamlit_lottie import st_lottie
 import requests
 import time
 
-# -------------------------------
-# Page Configuration
-# -------------------------------
+
 st.set_page_config(
     page_title="House Price Predictor",
     page_icon="🏡",
@@ -16,9 +14,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# -------------------------------
-# Enhanced CSS for Aesthetic & Professional Look
-# -------------------------------
 st.markdown("""
 <style>
     /* Global Styles */
@@ -160,9 +155,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# -------------------------------
 # Cache Lottie Animation
-# -------------------------------
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_lottie_url(url: str):
     try:
@@ -172,19 +165,14 @@ def load_lottie_url(url: str):
     except Exception as e:
         st.warning(f"Failed to load animation: {e}")
         return None
-
-# -------------------------------
-# Load Animations (Optimized URLs)
-# -------------------------------
+# Load Animations 
 SPLASH_URL = "https://lottie.host/ce4eeaf6-e2bc-421f-98b7-2f8af195f0b7/obnXRuFFLl.json"
 MAIN_URL = "https://lottie.host/a2425c91-7630-4c68-aa51-7b88388fbb7c/NvaArmIdzH.json"
 
 splash_animation = load_lottie_url(SPLASH_URL)
 main_animation = load_lottie_url(MAIN_URL)
 
-# -------------------------------
 # Session State Initialization
-# -------------------------------
 if 'app_mode' not in st.session_state:
     st.session_state.app_mode = "splash"
 
@@ -192,9 +180,7 @@ def switch_to_main():
     st.session_state.app_mode = "main"
     # No delay — instant transition
 
-# -------------------------------
 # Model Loading (Cached)
-# -------------------------------
 @st.cache_resource
 def load_model(model_path):
     try:
@@ -210,9 +196,6 @@ model_path = os.path.join(script_dir, 'house_price_model.pkl')
 model = load_model(model_path)
 model_loaded = model is not None
 
-# -------------------------------
-# Splash Screen (Fast & Smooth)
-# -------------------------------
 if st.session_state.app_mode == "splash":
     st.markdown("<div style='text-align: center; padding: 6rem 1rem;'>", unsafe_allow_html=True)
 
@@ -230,9 +213,7 @@ if st.session_state.app_mode == "splash":
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# -------------------------------
-# Main App (Clean & Professional)
-# -------------------------------
+# Main App 
 else:
     col1, col2, col3 = st.columns([1, 6, 1])
     with col2:
@@ -299,9 +280,9 @@ else:
             if not model_loaded:
                 st.error("❌ Model not loaded. Please check the file path.")
             else:
-                # Minimal progress bar (fast, smooth)
+                # Minimal progress bar 
                 with st.spinner("Predicting..."):
-                    time.sleep(0.3)  # Simulate brief processing (remove in production if instant)
+                    time.sleep(0.3)  # Simulate brief processing 
 
                 try:
                     # Feature construction
@@ -315,7 +296,7 @@ else:
                         'TotalBsmtSF': TotalBsmtSF
                     }
 
-                    # One-hot encoding mapping (must match training)
+                    # One-hot encoding mapping
                     cat_map = {
                         'MSZoning': ['C (all)', 'FV', 'RH', 'RL', 'RM'],
                         'LotConfig': ['Corner', 'CulDSac', 'FR2', 'FR3', 'Inside'],
